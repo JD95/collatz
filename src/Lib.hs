@@ -25,5 +25,7 @@ nCollatzOddsFromIterN b amount n = take amount $ filter nonFractional $ fmap (co
 -- | Generates the iterative connecting odds for the branch with base b
 nCollatzOdds b amount n = nub $ sort $ concatMap (nCollatzOddsFromIterN b amount) [1..n]
 
+firstOddBase b n = (head . filter ((==) 0 . flip mod 3) . filter nonFractional . fmap (collatzIterN b n (const 1.0))) [0..]
+
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
