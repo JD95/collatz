@@ -74,7 +74,7 @@ showNCollatzFIdents = mapM_ print . nCollatzFIdents
 
 odds = filter odd [0..]
 
-ordByFIdentCollatz = sortOn snd . map (second head) . filter ((/=) [] . snd) . zip odds . nCollatzFIdents
+ordByFIdentCollatz = sortOn (snd . second head) . filter ((/=) [] . snd) . zip odds . nCollatzFIdents
 
 queryOEIS :: String -> IO [C.ByteString]
 queryOEIS se = do
@@ -83,7 +83,7 @@ queryOEIS se = do
 
 checkOEIS :: [Integer] -> IO ()
 checkOEIS = map show >>> intercalate "," >>> queryOEIS
-        >=> return . filter ("%N" `C.isPrefixOf`)
+        >=> filter ("%N" `C.isPrefixOf`) >>> return
         >=> mapM_ print
 
 someFunc :: IO ()
