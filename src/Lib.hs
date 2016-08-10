@@ -1,9 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lib
     ( someFunc
     ) where
 
 import           Control.Arrow
+import           Control.Lens
+import           Control.Monad
+import           Data.ByteString            (pack)
+import qualified Data.ByteString.Lazy       as BS
+import qualified Data.ByteString.Lazy.Char8 as C
 import           Data.List
+import           Network.Wreq
 
 (<&<) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
 f <&< g = g &&& f >>> arr (uncurry (&&))
@@ -67,6 +75,16 @@ showNCollatzFIdents = mapM_ print . nCollatzFIdents
 odds = filter odd [0..]
 
 ordByFIdentCollatz = sortOn snd . map (second head) . filter ((/=) [] . snd) . zip odds . nCollatzFIdents
+
+queryOEIS :: String -> IO [C.ByteString]
+queryOEIS se = do
+  r <- get $ "http://oeis.org/search?fmt=text&q=" ++ se
+  return $ C.lines (r ^. responseBody)
+
+checkOEIS :: [Integer] -> IO ()
+checkOEIS = map show >>> intercalate "," >>> queryOEIS
+        >=> return . filter ("%N" `C.isPrefixOf`)
+        >=> mapM_ print
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
