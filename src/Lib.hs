@@ -20,6 +20,7 @@ f <&< g = g &&& f >>> arr (uncurry (&&))
 f >&> g = f &&& g >>> arr (uncurry (&&))
 
 collatz :: Integer -> [Integer]
+-- ^ Iterates the collatz step function until 1
 collatz = takeWhile (1 /=) . iterate f
   where f n = if even n then n `div` 2 else 3 * n + 1
 
@@ -60,28 +61,46 @@ terminalOdds b n = filter ((==) 0 . flip mod 3 . round) . oddBases b n
 
 firstTerminalOdd b n = (head . terminalOdds b n) [0..]
 
-extractIdents = flip (zipWith (-)) (oddBases 1 2 [0..])
-
 collatzIndentity = oddBases 1 2 [0..]
+
+-- | Subtracts out the Collatz Identity
+extractIdents = flip (zipWith (-)) collatzIndentity
 
 collatzFIdent b = extractIdents $ nOddBases b 2 10
 
-compareCollatzIdents b1 b2 = zipWith (/) (map fromIntegral $ collatzFIdent b1) (map fromIntegral $ collatzFIdent b2)
+(=|>) :: (a -> b) -> (a,a) -> (b,b)
+(=|>) f (x,y) = (f x, f y)
 
-nCollatzFIdents n = map (collatzFIdent . \n->2*n+1) [0..n]
+-- | Divides two Collatz Identities by eachother
+compareCollatzIdents = curry $ (=|>) (map fromIntegral . collatzFIdent) >>> uncurry (zipWith (/))
 
+-- | The identity functions for odd numbers up to n
+nCollatzFIdents n = map (collatzFIdent . (+) 1 . (*) 2) [0..n]
+
+
+-- | Prints the identites of nCollatsFIdents
 showNCollatzFIdents = mapM_ print . nCollatzFIdents
 
+-- | Odd numbers
 odds = filter odd [0..]
 
-ordByFIdentCollatz = sortOn (snd . second head) . filter ((/=) [] . snd) . zip odds . nCollatzFIdents
+ordByFIdentCollatz :: Rational -- Amount of idents to find
+                   -> [(Integer, [Integer])]
+-- ^ Creates and sorts the collatz identity functions
+ordByFIdentCollatz = nCollatzFIdents >>> zip odds
+                 >>> filter ((/=) [] . snd)
+                 >>> sortOn (snd . second head)
 
-queryOEIS :: String -> IO [C.ByteString]
+queryOEIS :: String -- ^ List of integers eg. 1,2,3,4
+          -> IO [C.ByteString]
+-- ^ Queries OEIS to find possible functions for the sequence
 queryOEIS se = do
   r <- get $ "http://oeis.org/search?fmt=text&q=" ++ se
   return $ C.lines (r ^. responseBody)
 
-checkOEIS :: [Integer] -> IO ()
+checkOEIS :: [Integer] -- ^ Generated list of numbers
+          -> IO ()
+-- ^ Queries OEIS to find possible functions for the sequence
 checkOEIS = map show >>> intercalate "," >>> queryOEIS
         >=> filter ("%N" `C.isPrefixOf`) >>> return
         >=> mapM_ print
